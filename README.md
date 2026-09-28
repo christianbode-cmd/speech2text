@@ -1,4 +1,4 @@
-# Blab
+# Speech-to-Text
 
 Hold a key, speak, release — your words appear wherever your cursor is.
 
@@ -10,12 +10,12 @@ A lightweight macOS menubar app that records your voice, sends it to OpenAI's tr
 
 The easiest way to install on macOS is via the DMG:
 
-1. Download `Blab.dmg` from the [latest release](https://github.com/christianbode-cmd/blab/releases/latest)
-2. Open the DMG and drag **Blab.app** into your **Applications** folder
+1. Download `Speech-to-Text.dmg` from the [latest release](https://github.com/christianbode-cmd/blab/releases/latest)
+2. Open the DMG and drag **Speech-to-Text.app** into your **Applications** folder
 3. Launch the app from Applications or Spotlight
 4. If macOS says the app is damaged or unverified, run:
    ```bash
-   xattr -cr "/Applications/Blab.app"
+   xattr -cr "/Applications/Speech-to-Text.app"
    ```
 5. On first launch, grant **Microphone** and **Accessibility** access when prompted — both are required
 6. Click the microphone icon in the menubar → **Preferences…** and enter your [OpenAI API key](https://platform.openai.com/api-keys)
@@ -50,18 +50,18 @@ chmod +x build_app.sh
 ./build_app.sh
 ```
 
-This takes 1–2 minutes. It installs dependencies into a local virtual environment and produces `dist/Blab.app`.
+This takes 1–2 minutes. It installs dependencies into a local virtual environment and produces `dist/Speech-to-Text.app`.
 
 ### 4. Install
 
 ```bash
-cp -R "dist/Blab.app" /Applications/
+cp -R "dist/Speech-to-Text.app" /Applications/
 ```
 
 ### 5. Launch and grant permissions
 
 ```bash
-open "/Applications/Blab.app"
+open "/Applications/Speech-to-Text.app"
 ```
 
 macOS will prompt for **Microphone** and **Accessibility** access. Both are required:
@@ -72,7 +72,7 @@ macOS will prompt for **Microphone** and **Accessibility** access. Both are requ
 If macOS says the app is damaged, run:
 
 ```bash
-xattr -cr "/Applications/Blab.app"
+xattr -cr "/Applications/Speech-to-Text.app"
 ```
 
 ---
@@ -138,13 +138,13 @@ The API key is stored in the macOS Keychain (not in `config.json`) and can be ma
 
 ## Rebuilding after changes
 
-If you edit `blab.py`:
+If you edit `speech_to_text.py`:
 
 ```bash
 ./build_app.sh
-osascript -e 'quit app "Blab"'
-rm -rf "/Applications/Blab.app" && cp -R "dist/Blab.app" /Applications/
-open "/Applications/Blab.app"
+osascript -e 'quit app "Speech-to-Text"'
+rm -rf "/Applications/Speech-to-Text.app" && cp -R "dist/Speech-to-Text.app" /Applications/
+open "/Applications/Speech-to-Text.app"
 ```
 
 Re-granting Accessibility permission is required each time the binary changes (macOS revokes it automatically).
@@ -160,14 +160,14 @@ See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
 ## Debugging
 
 ```bash
-tail -f ~/Library/Logs/Blab.log
+tail -f ~/Library/Logs/SpeechToText.log
 ```
 
 Or run directly in a terminal to see output in real time:
 
 ```bash
 source .venv/bin/activate
-python blab.py
+python speech_to_text.py
 ```
 
 ---

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Blab — hold-to-record voice transcription for macOS.
+Speech-to-Text — hold-to-record voice transcription for macOS.
 
 Hold a hotkey, speak, release → transcribed text is pasted into the focused field.
 Uses OpenAI's transcription API and native macOS APIs throughout.
@@ -18,12 +18,12 @@ import threading
 import time
 
 # ---------------------------------------------------------------------------
-# Logging — writes to ~/Library/Logs/Blab.log
+# Logging — writes to ~/Library/Logs/SpeechToText.log
 # Visible even when running as a .app bundle with no terminal
 # ---------------------------------------------------------------------------
 LOG_DIR = os.path.expanduser("~/Library/Logs")
 os.makedirs(LOG_DIR, exist_ok=True)
-LOG_PATH = os.path.join(LOG_DIR, "Blab.log")
+LOG_PATH = os.path.join(LOG_DIR, "SpeechToText.log")
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -33,7 +33,7 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout),
     ],
 )
-log = logging.getLogger("Blab")
+log = logging.getLogger("SpeechToText")
 log.info(f"Log file: {LOG_PATH}")
 
 # ---------------------------------------------------------------------------
@@ -75,7 +75,7 @@ def find_config_path():
     if os.path.exists(p2):
         return os.path.abspath(p2)
 
-    p3 = os.path.expanduser("~/blab/config.json")
+    p3 = os.path.expanduser("~/speech-to-text/config.json")
     if os.path.exists(p3):
         return p3
 
@@ -98,8 +98,8 @@ DEFAULT_CONFIG = {
 # ---------------------------------------------------------------------------
 # Keychain — API key storage
 # ---------------------------------------------------------------------------
-_KC_SERVICE = "Blab"
-_KC_LEGACY_SERVICE = "WhisperDictate"   # pre-1.2.0 item, migrated on first read
+_KC_SERVICE = "SpeechToText"
+_KC_LEGACY_SERVICES = ["Blab", "WhisperDictate"]   # earlier app names, migrated on first read
 _KC_ACCOUNT = "OpenAIAPIKey"
 
 # Cached OpenAI client — invalidated by keychain_save_api_key().
@@ -121,16 +121,19 @@ def _keychain_read(service):
 def keychain_get_api_key():
     """Return the stored API key, or None if not set."""
     key = _keychain_read(_KC_SERVICE)
-    if key is None:
-        key = _keychain_read(_KC_LEGACY_SERVICE)
+    if key is not None:
+        return key
+    for legacy in _KC_LEGACY_SERVICES:
+        key = _keychain_read(legacy)
         if key and keychain_save_api_key(key):
             subprocess.run(
                 ["security", "delete-generic-password",
-                 "-s", _KC_LEGACY_SERVICE, "-a", _KC_ACCOUNT],
+                 "-s", legacy, "-a", _KC_ACCOUNT],
                 capture_output=True,
             )
-            log.info(f"Migrated API key from the {_KC_LEGACY_SERVICE} Keychain item")
-    return key
+            log.info(f"Migrated API key from the {legacy} Keychain item")
+            return key
+    return None
 
 def _get_openai_client():
     """Return a cached OpenAI client, or None if no API key is stored."""
@@ -313,7 +316,7 @@ class AudioRecorder:
 
     def __init__(self, input_device=DEFAULT_INPUT_DEVICE):
         self.input_device = input_device
-        self.filepath = os.path.join(tempfile.gettempdir(), "blab_recording.wav")
+        self.filepath = os.path.join(tempfile.gettempdir(), "speech_to_text_recording.wav")
         self._session = None
         self._output = None
         self._device_uid = None
@@ -577,7 +580,7 @@ _BAR_CHARS = "▁▂▃▄▅▆▇█"
 class AppDelegate(AppKit.NSObject):
     """Application delegate.
 
-    Blab runs as a menubar (accessory) app, but the Preferences
+    Speech-to-Text runs as a menubar (accessory) app, but the Preferences
     window temporarily switches the app to a Regular activation policy so its
     text fields can receive keyboard input.  Without this delegate, closing
     that window counts as "last window closed" and AppKit terminates the
@@ -627,7 +630,7 @@ def _tracked(text, font, color, kern=1.5):
 
 def app_version():
     bundle = Foundation.NSBundle.mainBundle()
-    if bundle.bundleIdentifier() != "io.github.christianbode-cmd.blab":
+    if bundle.bundleIdentifier() != "io.github.christianbode-cmd.speech-to-text":
         return "dev"   # running from source: mainBundle is the Python framework
     return str(bundle.objectForInfoDictionaryKey_("CFBundleShortVersionString"))
 
@@ -766,7 +769,7 @@ class PreferencesWindowController(AppKit.NSObject):
             AppKit.NSBackingStoreBuffered,
             False,
         )
-        self._window.setTitle_("Blab — Preferences")
+        self._window.setTitle_("Speech-to-Text — Preferences")
         self._window.setTitlebarAppearsTransparent_(True)
         self._window.setTitleVisibility_(AppKit.NSWindowTitleHidden)
         self._window.setBackgroundColor_(PAPER)
@@ -787,7 +790,7 @@ class PreferencesWindowController(AppKit.NSObject):
         # Header
         content.addSubview_(self._eyebrow(R(M, 30, 240, 14), "Preferences"))
         content.addSubview_(self._label(
-            R(M, 48, 360, 40), "Blab.",
+            R(M, 48, 360, 40), "Speech-to-Text.",
             AppKit.NSFont.systemFontOfSize_weight_(30, AppKit.NSFontWeightHeavy), INK,
         ))
         version = self._eyebrow(R(WIN_W - M - 140, 56, 140, 14), f"v{app_version()}", upper=False)
@@ -984,7 +987,7 @@ class PreferencesWindowController(AppKit.NSObject):
 # ---------------------------------------------------------------------------
 # Status bar (menubar) app
 # ---------------------------------------------------------------------------
-class BlabApp:
+class SpeechToTextApp:
 
     def __init__(self, config):
         self.config = config
@@ -1011,7 +1014,7 @@ class BlabApp:
         menu = AppKit.NSMenu.alloc().init()
 
         status_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-            "Blab — Ready", None, ""
+            "Speech-to-Text — Ready", None, ""
         )
         status_item.setEnabled_(False)
         menu.addItem_(status_item)
@@ -1115,7 +1118,7 @@ class BlabApp:
             alert = AppKit.NSAlert.alloc().init()
             alert.setMessageText_("OpenAI API Key Required")
             alert.setInformativeText_(
-                "No API key is configured. Blab cannot transcribe "
+                "No API key is configured. Speech-to-Text cannot transcribe "
                 "audio without it.\n\n"
                 "Click 'Open Preferences' to add your key."
             )
@@ -1134,10 +1137,10 @@ class BlabApp:
             alert = AppKit.NSAlert.alloc().init()
             alert.setMessageText_("Accessibility Permission Required")
             alert.setInformativeText_(
-                "Blab needs Accessibility access to paste transcribed "
+                "Speech-to-Text needs Accessibility access to paste transcribed "
                 "text into other apps.\n\n"
                 "Click 'Open Settings' to go to Privacy & Security > Accessibility,"
-                " then add Blab. Restart the app afterward."
+                " then add Speech-to-Text. Restart the app afterward."
             )
             alert.addButtonWithTitle_("Open Settings")
             alert.addButtonWithTitle_("Later")
@@ -1284,7 +1287,7 @@ class BlabApp:
             log.error("Failed to start recording")
             self.recording = False
             self.set_icon("idle")
-            self.menu_status.setTitle_("Blab — Mic Error")
+            self.menu_status.setTitle_("Speech-to-Text — Mic Error")
             return
 
         # Play in a background thread after a delay so the BT A2DP→HFP profile
@@ -1347,7 +1350,7 @@ class BlabApp:
     def _reset_ui(self):
         self.processing = False
         self.set_icon("idle")
-        self.menu_status.setTitle_("Blab — Ready")
+        self.menu_status.setTitle_("Speech-to-Text — Ready")
 
     def _perform_on_main(self, fn):
         self._main_queue.put(fn)
@@ -1391,11 +1394,11 @@ class BlabApp:
 # ---------------------------------------------------------------------------
 def main():
     log.info("=" * 50)
-    log.info("Blab starting")
+    log.info("Speech-to-Text starting")
     log.info(f"Python: {sys.version}")
     log.info(f"Script: {os.path.abspath(__file__)}")
     config = load_config()
-    app = BlabApp(config)
+    app = SpeechToTextApp(config)
     app.run()
 
 if __name__ == "__main__":

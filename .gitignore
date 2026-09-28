@@ -6,8 +6,8 @@ dist/
 dist_old_*/
 build/
 setup_py2app.py
-Blab.icns
-Blab.iconset/
+SpeechToText.icns
+SpeechToText.iconset/
 
 # Python
 .venv/

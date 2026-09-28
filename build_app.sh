@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VENV_DIR="$SCRIPT_DIR/.venv"
 
 echo "==================================="
-echo "  Blab — Build"
+echo "  Speech-to-Text — Build"
 echo "==================================="
 echo ""
 
@@ -36,7 +36,7 @@ pip install --quiet \
 
 # ── Create app icon ──────────────────────────────────────────────────────
 echo "Creating app icon..."
-ICONSET_DIR="$SCRIPT_DIR/Blab.iconset"
+ICONSET_DIR="$SCRIPT_DIR/SpeechToText.iconset"
 mkdir -p "$ICONSET_DIR"
 
 python3 << 'ICON_SCRIPT'
@@ -44,7 +44,7 @@ import AppKit
 import os
 
 sizes = [16, 32, 64, 128, 256, 512, 1024]
-iconset_dir = os.environ.get("ICONSET_DIR", "Blab.iconset")
+iconset_dir = os.environ.get("ICONSET_DIR", "SpeechToText.iconset")
 
 for size in sizes:
     img = AppKit.NSImage.alloc().initWithSize_((size, size))
@@ -103,8 +103,8 @@ print("Icon PNGs created.")
 ICON_SCRIPT
 
 if command -v iconutil &> /dev/null; then
-    iconutil -c icns "$ICONSET_DIR" -o "$SCRIPT_DIR/Blab.icns" 2>/dev/null || true
-    echo "Created Blab.icns"
+    iconutil -c icns "$ICONSET_DIR" -o "$SCRIPT_DIR/SpeechToText.icns" 2>/dev/null || true
+    echo "Created SpeechToText.icns"
 fi
 rm -rf "$ICONSET_DIR"
 
@@ -112,22 +112,22 @@ rm -rf "$ICONSET_DIR"
 cat > "$SCRIPT_DIR/setup_py2app.py" << 'SETUP_SCRIPT'
 from setuptools import setup
 
-APP = ['blab.py']
+APP = ['speech_to_text.py']
 DATA_FILES = ['config.json']
 
 OPTIONS = {
     'argv_emulation': False,
-    'iconfile': 'Blab.icns',
+    'iconfile': 'SpeechToText.icns',
     'plist': {
-        'CFBundleName': 'Blab',
-        'CFBundleDisplayName': 'Blab',
-        'CFBundleIdentifier': 'io.github.christianbode-cmd.blab',
-        'CFBundleVersion': '1.2.0',
-        'CFBundleShortVersionString': '1.2.0',
+        'CFBundleName': 'Speech-to-Text',
+        'CFBundleDisplayName': 'Speech-to-Text',
+        'CFBundleIdentifier': 'io.github.christianbode-cmd.speech-to-text',
+        'CFBundleVersion': '1.3.0',
+        'CFBundleShortVersionString': '1.3.0',
         'LSMinimumSystemVersion': '13.0',
         'LSUIElement': True,
-        'NSMicrophoneUsageDescription': 'Blab needs microphone access to record your voice for transcription.',
-        'NSAppleEventsUsageDescription': 'Blab needs accessibility access to paste transcribed text into your applications.',
+        'NSMicrophoneUsageDescription': 'Speech-to-Text needs microphone access to record your voice for transcription.',
+        'NSAppleEventsUsageDescription': 'Speech-to-Text needs accessibility access to paste transcribed text into your applications.',
     },
     'packages': ['openai', 'httpx', 'httpcore', 'certifi', 'idna', 'sniffio', 'anyio', 'h11', 'pydantic', 'pydantic_core', 'annotated_types', 'distro', 'jiter', 'typing_extensions'],
     'frameworks': [],
@@ -149,7 +149,7 @@ fi
 
 # ── Build ─────────────────────────────────────────────────────────────────
 echo ""
-echo "Building Blab.app..."
+echo "Building Speech-to-Text.app..."
 echo "(this may take a minute)"
 echo ""
 
@@ -166,7 +166,7 @@ fi
 
 python setup_py2app.py py2app --dist-dir "$SCRIPT_DIR/dist" 2>&1 | tail -5
 
-APP_PATH="$SCRIPT_DIR/dist/Blab.app"
+APP_PATH="$SCRIPT_DIR/dist/Speech-to-Text.app"
 RESOURCES_DIR="$APP_PATH/Contents/Resources"
 
 if [ -d "$APP_PATH" ]; then
@@ -176,10 +176,10 @@ if [ -d "$APP_PATH" ]; then
     xattr -cr "$APP_PATH" 2>/dev/null || true
 
     # ── Build DMG ──────────────────────────────────────────────────────────
-    DMG_NAME="Blab"
-    DMG_PATH="$SCRIPT_DIR/dist/Blab.dmg"
+    DMG_NAME="Speech-to-Text"
+    DMG_PATH="$SCRIPT_DIR/dist/Speech-to-Text.dmg"
     DMG_STAGING="$SCRIPT_DIR/dist/dmg_staging"
-    DMG_TMP="$SCRIPT_DIR/dist/Blab_tmp.dmg"
+    DMG_TMP="$SCRIPT_DIR/dist/STT_tmp.dmg"
 
     echo "Creating DMG installer..."
 
@@ -215,7 +215,7 @@ para.setAlignment_(AppKit.NSTextAlignmentCenter)
 
 # Main instruction
 Foundation.NSString.stringWithString_(
-    "Drag Blab to Applications to install"
+    "Drag Speech-to-Text to Applications to install"
 ).drawInRect_withAttributes_(((0, 108), (W, 24)), {
     AppKit.NSFontAttributeName: AppKit.NSFont.systemFontOfSize_(13),
     AppKit.NSForegroundColorAttributeName: AppKit.NSColor.colorWithCalibratedRed_green_blue_alpha_(0.2, 0.2, 0.25, 1.0),
@@ -284,7 +284,7 @@ tell application "Finder"
         set arrangement of theViewOptions to not arranged
         set icon size of theViewOptions to 100
         set background picture of theViewOptions to (alias POSIX file "$MOUNT_POINT/.background/background.png")
-        set position of item "Blab.app" to {160, 210}
+        set position of item "Speech-to-Text.app" to {160, 210}
         set position of item "Applications" to {440, 210}
         close
         open
@@ -328,8 +328,8 @@ APPLESCRIPT
     echo "  DMG: $DMG_PATH"
     echo ""
     echo "  INSTALL (no terminal needed):"
-    echo "  1. Open dist/Blab.dmg"
-    echo "  2. Drag 'Blab' into the Applications folder"
+    echo "  1. Open dist/Speech-to-Text.dmg"
+    echo "  2. Drag 'Speech-to-Text' into the Applications folder"
     echo "  3. Launch from Applications or Spotlight"
     echo "  4. Grant Microphone + Accessibility when prompted"
     echo "  5. Enter your OpenAI API key in Preferences"
@@ -338,7 +338,7 @@ APPLESCRIPT
     echo "  Right-click the app → Open → Open to bypass this once."
     echo ""
     echo "  DEBUGGING:"
-    echo "  tail -f ~/Library/Logs/Blab.log"
+    echo "  tail -f ~/Library/Logs/SpeechToText.log"
     echo ""
 else
     echo "Error: Build failed. Check output above."
@@ -348,4 +348,4 @@ fi
 # Cleanup
 rm -rf "$SCRIPT_DIR/build"
 rm -f "$SCRIPT_DIR/setup_py2app.py"
-rm -f "$SCRIPT_DIR/Blab.icns"
+rm -f "$SCRIPT_DIR/SpeechToText.icns"
