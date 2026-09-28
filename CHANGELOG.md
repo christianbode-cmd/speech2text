@@ -64,8 +64,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Fixed
 - Preferences crash caused by `NSAlert.runModal` during app initialisation.
 
-[1.3.0]: https://github.com/christianbode-cmd/blab/compare/v1.2.0...v1.3.0
-[1.2.0]: https://github.com/christianbode-cmd/blab/compare/v1.1.0...v1.2.0
-[1.1.0]: https://github.com/christianbode-cmd/blab/compare/v1.0.1...v1.1.0
-[1.0.1]: https://github.com/christianbode-cmd/blab/compare/v1.0.0...v1.0.1
-[1.0.0]: https://github.com/christianbode-cmd/blab/releases/tag/v1.0.0
+[1.3.0]: https://github.com/christianbode-cmd/speech2text/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/christianbode-cmd/speech2text/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/christianbode-cmd/speech2text/compare/v1.0.1...v1.1.0
+[1.0.1]: https://github.com/christianbode-cmd/speech2text/compare/v1.0.0...v1.0.1
+[1.0.0]: https://github.com/christianbode-cmd/speech2text/releases/tag/v1.0.0
