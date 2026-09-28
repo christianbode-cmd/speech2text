@@ -1,12 +1,12 @@
 # Changelog
 
-All notable changes to Speech-to-Text (formerly Blab, formerly Whisper Dictate) are documented here.
+All notable changes to Speech2Text (formerly Blab, formerly Whisper Dictate) are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [1.3.0] - 2026-09-28
 
 ### Changed
-- **Renamed to Speech-to-Text.** The script is now `speech_to_text.py`, the log is `~/Library/Logs/SpeechToText.log`, and the bundle identifier is `io.github.christianbode-cmd.speech-to-text` — so macOS asks for Microphone and Accessibility permission again on first launch. The API key stored under the "Blab" or "WhisperDictate" Keychain item is migrated automatically.
+- **Renamed to Speech2Text.** The script is now `speech2text.py`, the log is `~/Library/Logs/Speech2Text.log`, and the bundle identifier is `io.github.christianbode-cmd.speech2text` — so macOS asks for Microphone and Accessibility permission again on first launch. The API key stored under an earlier app name's Keychain item is migrated automatically.
 
 ## [1.2.0] - 2026-09-22
 

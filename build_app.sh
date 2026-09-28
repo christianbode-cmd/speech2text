@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VENV_DIR="$SCRIPT_DIR/.venv"
 
 echo "==================================="
-echo "  Speech-to-Text — Build"
+echo "  Speech2Text — Build"
 echo "==================================="
 echo ""
 
@@ -36,7 +36,7 @@ pip install --quiet \
 
 # ── Create app icon ──────────────────────────────────────────────────────
 echo "Creating app icon..."
-ICONSET_DIR="$SCRIPT_DIR/SpeechToText.iconset"
+ICONSET_DIR="$SCRIPT_DIR/Speech2Text.iconset"
 mkdir -p "$ICONSET_DIR"
 
 python3 << 'ICON_SCRIPT'
@@ -44,7 +44,7 @@ import AppKit
 import os
 
 sizes = [16, 32, 64, 128, 256, 512, 1024]
-iconset_dir = os.environ.get("ICONSET_DIR", "SpeechToText.iconset")
+iconset_dir = os.environ.get("ICONSET_DIR", "Speech2Text.iconset")
 
 for size in sizes:
     img = AppKit.NSImage.alloc().initWithSize_((size, size))
@@ -103,8 +103,8 @@ print("Icon PNGs created.")
 ICON_SCRIPT
 
 if command -v iconutil &> /dev/null; then
-    iconutil -c icns "$ICONSET_DIR" -o "$SCRIPT_DIR/SpeechToText.icns" 2>/dev/null || true
-    echo "Created SpeechToText.icns"
+    iconutil -c icns "$ICONSET_DIR" -o "$SCRIPT_DIR/Speech2Text.icns" 2>/dev/null || true
+    echo "Created Speech2Text.icns"
 fi
 rm -rf "$ICONSET_DIR"
 
@@ -112,22 +112,22 @@ rm -rf "$ICONSET_DIR"
 cat > "$SCRIPT_DIR/setup_py2app.py" << 'SETUP_SCRIPT'
 from setuptools import setup
 
-APP = ['speech_to_text.py']
+APP = ['speech2text.py']
 DATA_FILES = ['config.json']
 
 OPTIONS = {
     'argv_emulation': False,
-    'iconfile': 'SpeechToText.icns',
+    'iconfile': 'Speech2Text.icns',
     'plist': {
-        'CFBundleName': 'Speech-to-Text',
-        'CFBundleDisplayName': 'Speech-to-Text',
-        'CFBundleIdentifier': 'io.github.christianbode-cmd.speech-to-text',
+        'CFBundleName': 'Speech2Text',
+        'CFBundleDisplayName': 'Speech2Text',
+        'CFBundleIdentifier': 'io.github.christianbode-cmd.speech2text',
         'CFBundleVersion': '1.3.0',
         'CFBundleShortVersionString': '1.3.0',
         'LSMinimumSystemVersion': '13.0',
         'LSUIElement': True,
-        'NSMicrophoneUsageDescription': 'Speech-to-Text needs microphone access to record your voice for transcription.',
-        'NSAppleEventsUsageDescription': 'Speech-to-Text needs accessibility access to paste transcribed text into your applications.',
+        'NSMicrophoneUsageDescription': 'Speech2Text needs microphone access to record your voice for transcription.',
+        'NSAppleEventsUsageDescription': 'Speech2Text needs accessibility access to paste transcribed text into your applications.',
     },
     'packages': ['openai', 'httpx', 'httpcore', 'certifi', 'idna', 'sniffio', 'anyio', 'h11', 'pydantic', 'pydantic_core', 'annotated_types', 'distro', 'jiter', 'typing_extensions'],
     'frameworks': [],
@@ -149,7 +149,7 @@ fi
 
 # ── Build ─────────────────────────────────────────────────────────────────
 echo ""
-echo "Building Speech-to-Text.app..."
+echo "Building Speech2Text.app..."
 echo "(this may take a minute)"
 echo ""
 
@@ -166,7 +166,7 @@ fi
 
 python setup_py2app.py py2app --dist-dir "$SCRIPT_DIR/dist" 2>&1 | tail -5
 
-APP_PATH="$SCRIPT_DIR/dist/Speech-to-Text.app"
+APP_PATH="$SCRIPT_DIR/dist/Speech2Text.app"
 RESOURCES_DIR="$APP_PATH/Contents/Resources"
 
 if [ -d "$APP_PATH" ]; then
@@ -176,8 +176,8 @@ if [ -d "$APP_PATH" ]; then
     xattr -cr "$APP_PATH" 2>/dev/null || true
 
     # ── Build DMG ──────────────────────────────────────────────────────────
-    DMG_NAME="Speech-to-Text"
-    DMG_PATH="$SCRIPT_DIR/dist/Speech-to-Text.dmg"
+    DMG_NAME="Speech2Text"
+    DMG_PATH="$SCRIPT_DIR/dist/Speech2Text.dmg"
     DMG_STAGING="$SCRIPT_DIR/dist/dmg_staging"
     DMG_TMP="$SCRIPT_DIR/dist/STT_tmp.dmg"
 
@@ -215,7 +215,7 @@ para.setAlignment_(AppKit.NSTextAlignmentCenter)
 
 # Main instruction
 Foundation.NSString.stringWithString_(
-    "Drag Speech-to-Text to Applications to install"
+    "Drag Speech2Text to Applications to install"
 ).drawInRect_withAttributes_(((0, 108), (W, 24)), {
     AppKit.NSFontAttributeName: AppKit.NSFont.systemFontOfSize_(13),
     AppKit.NSForegroundColorAttributeName: AppKit.NSColor.colorWithCalibratedRed_green_blue_alpha_(0.2, 0.2, 0.25, 1.0),
@@ -284,7 +284,7 @@ tell application "Finder"
         set arrangement of theViewOptions to not arranged
         set icon size of theViewOptions to 100
         set background picture of theViewOptions to (alias POSIX file "$MOUNT_POINT/.background/background.png")
-        set position of item "Speech-to-Text.app" to {160, 210}
+        set position of item "Speech2Text.app" to {160, 210}
         set position of item "Applications" to {440, 210}
         close
         open
@@ -328,8 +328,8 @@ APPLESCRIPT
     echo "  DMG: $DMG_PATH"
     echo ""
     echo "  INSTALL (no terminal needed):"
-    echo "  1. Open dist/Speech-to-Text.dmg"
-    echo "  2. Drag 'Speech-to-Text' into the Applications folder"
+    echo "  1. Open dist/Speech2Text.dmg"
+    echo "  2. Drag 'Speech2Text' into the Applications folder"
     echo "  3. Launch from Applications or Spotlight"
     echo "  4. Grant Microphone + Accessibility when prompted"
     echo "  5. Enter your OpenAI API key in Preferences"
@@ -338,7 +338,7 @@ APPLESCRIPT
     echo "  Right-click the app → Open → Open to bypass this once."
     echo ""
     echo "  DEBUGGING:"
-    echo "  tail -f ~/Library/Logs/SpeechToText.log"
+    echo "  tail -f ~/Library/Logs/Speech2Text.log"
     echo ""
 else
     echo "Error: Build failed. Check output above."
@@ -348,4 +348,4 @@ fi
 # Cleanup
 rm -rf "$SCRIPT_DIR/build"
 rm -f "$SCRIPT_DIR/setup_py2app.py"
-rm -f "$SCRIPT_DIR/SpeechToText.icns"
+rm -f "$SCRIPT_DIR/Speech2Text.icns"
