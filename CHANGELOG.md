@@ -3,6 +3,16 @@
 All notable changes to Speech2Text (formerly Blab, formerly Whisper Dictate) are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.3.1] - 2026-11-26
+
+### Security
+- The log no longer records any dictated text, is readable only by the owner (`0600`), rotates at 2 MB, and defaults to INFO level. Previously the first 100 characters of every dictation were written to a world-readable, ever-growing log.
+- Transcripts placed on the clipboard are marked `org.nspasteboard.ConcealedType` / `TransientType`, so clipboard managers that honour the convention (Paste, Raycast, Alfred, Maccy, …) do not keep them.
+- The API key is entered in a secure (masked) field; the stored key is shown only as a truncated placeholder.
+- Helper binaries are called by absolute path (`/usr/bin/security`, `/usr/bin/open`) rather than via `PATH`.
+- Recordings go to a fresh per-launch temp directory; directories left behind by a crash are cleaned up on the next launch.
+- Line breaks in a transcript are replaced with spaces before pasting, so text can never be executed if focus has moved to a terminal.
+
 ## [1.3.0] - 2026-09-28
 
 ### Changed
@@ -64,6 +74,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Fixed
 - Preferences crash caused by `NSAlert.runModal` during app initialisation.
 
+[1.3.1]: https://github.com/christianbode-cmd/speech2text/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/christianbode-cmd/speech2text/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/christianbode-cmd/speech2text/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/christianbode-cmd/speech2text/compare/v1.0.1...v1.1.0

@@ -6,9 +6,13 @@ Hold a hotkey, speak, release → transcribed text is pasted into the focused fi
 Uses OpenAI's transcription API and native macOS APIs throughout.
 """
 
+import glob
 import json
 import logging
+import logging.handlers
 import os
+import re
+import shutil
 import queue
 import signal
 import subprocess
@@ -25,11 +29,20 @@ LOG_DIR = os.path.expanduser("~/Library/Logs")
 os.makedirs(LOG_DIR, exist_ok=True)
 LOG_PATH = os.path.join(LOG_DIR, "Speech2Text.log")
 
+class _PrivateRotatingFileHandler(logging.handlers.RotatingFileHandler):
+    """Owner-readable log files only — the log must never leak dictation."""
+
+    def _open(self):
+        stream = super()._open()
+        os.chmod(self.baseFilename, 0o600)
+        return stream
+
+
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.FileHandler(LOG_PATH),
+        _PrivateRotatingFileHandler(LOG_PATH, maxBytes=2_000_000, backupCount=3),
         logging.StreamHandler(sys.stdout),
     ],
 )
@@ -108,7 +121,7 @@ _openai_client: "OpenAI | None" = None
 def _keychain_read(service):
     try:
         result = subprocess.run(
-            ["security", "find-generic-password",
+            ["/usr/bin/security", "find-generic-password",
              "-s", service, "-a", _KC_ACCOUNT, "-w"],
             capture_output=True, text=True,
         )
@@ -127,7 +140,7 @@ def keychain_get_api_key():
         key = _keychain_read(legacy)
         if key and keychain_save_api_key(key):
             subprocess.run(
-                ["security", "delete-generic-password",
+                ["/usr/bin/security", "delete-generic-password",
                  "-s", legacy, "-a", _KC_ACCOUNT],
                 capture_output=True,
             )
@@ -154,13 +167,13 @@ def keychain_save_api_key(key):
     _openai_client = None   # invalidate cached client
     try:
         subprocess.run(
-            ["security", "delete-generic-password",
+            ["/usr/bin/security", "delete-generic-password",
              "-s", _KC_SERVICE, "-a", _KC_ACCOUNT],
             capture_output=True,
         )
         if key:
             result = subprocess.run(
-                ["security", "add-generic-password",
+                ["/usr/bin/security", "add-generic-password",
                  "-s", _KC_SERVICE, "-a", _KC_ACCOUNT, "-w", key],
                 capture_output=True, text=True,
             )
@@ -303,6 +316,15 @@ class _RecordingDelegate(AppKit.NSObject, protocols=[objc.protocolNamed("AVCaptu
         self.finished.set()
 
 
+def _private_recording_dir():
+    """Fresh temp dir for this launch; dirs left behind by a crash are removed."""
+    tmp = tempfile.gettempdir()
+    for stale in glob.glob(os.path.join(tmp, "speech2text-*")):
+        if time.time() - os.path.getmtime(stale) > 3600:
+            shutil.rmtree(stale, ignore_errors=True)
+    return tempfile.mkdtemp(prefix="speech2text-")
+
+
 class AudioRecorder:
     # 16 kHz mono 16-bit PCM — small files, all the bandwidth speech needs.
     _SETTINGS = {
@@ -316,7 +338,7 @@ class AudioRecorder:
 
     def __init__(self, input_device=DEFAULT_INPUT_DEVICE):
         self.input_device = input_device
-        self.filepath = os.path.join(tempfile.gettempdir(), "speech2text_recording.wav")
+        self.filepath = os.path.join(_private_recording_dir(), "recording.wav")
         self._session = None
         self._output = None
         self._device_uid = None
@@ -479,6 +501,9 @@ class ClipboardPaster:
 
         pb.clearContents()
         pb.setString_forType_(text, AppKit.NSPasteboardTypeString)
+        # Ask clipboard managers (Paste, Raycast, Alfred, Maccy, …) not to keep this.
+        pb.setString_forType_("", "org.nspasteboard.ConcealedType")
+        pb.setString_forType_("", "org.nspasteboard.TransientType")
 
         time.sleep(0.1)
 
@@ -542,7 +567,9 @@ def transcribe(filepath, config):
         else:
             text = result.text.strip()
 
-        log.info(f"Transcription result: '{text[:100]}{'...' if len(text) > 100 else ''}'")
+        # Never paste line breaks: focus may have moved to a terminal by now.
+        text = re.sub(r"\s*\n\s*", " ", text)
+        log.info(f"Transcription returned {len(text)} chars")
         return text if text else None
 
     except Exception as e:
@@ -712,7 +739,7 @@ class PreferencesWindowController(AppKit.NSObject):
         lang = self._language_field.stringValue().strip()
         self._config["language"] = lang if lang else "en"
         api_key = self._api_key_field.stringValue().strip()
-        if api_key != self._display_key:
+        if api_key:   # empty = unchanged; the current key is only shown as the placeholder
             keychain_save_api_key(api_key)
         save_config(self._config)
         if self._on_save:
@@ -747,8 +774,7 @@ class PreferencesWindowController(AppKit.NSObject):
         self._pending_keycode = config.get("hotkey_keycode", 58)
         self._capturing = False
         self._capture_monitor = None
-        # Truncated placeholder shown in the field — used to detect whether
-        # the user actually replaced the key or left it unchanged.
+        # Truncated form of the stored key, shown as the field's placeholder.
         self._display_key = _truncate_api_key(keychain_get_api_key())
 
         WIN_W, WIN_H = 480, 488
@@ -804,7 +830,9 @@ class PreferencesWindowController(AppKit.NSObject):
 
         # API key
         content.addSubview_(self._eyebrow(R(M, 134, COL, 14), "API key"))
-        self._api_key_field = self._field(R(M, 152, WIN_W - 2 * M, 28), self._display_key, "sk-...")
+        self._api_key_field = self._field(
+            R(M, 152, WIN_W - 2 * M, 28), "", self._display_key or "sk-...", secure=True,
+        )
         content.addSubview_(self._api_key_field)
 
         # Model (left column)
@@ -943,8 +971,9 @@ class PreferencesWindowController(AppKit.NSObject):
         return tf
 
     @objc.python_method
-    def _field(self, frame, value, placeholder):
-        tf = AppKit.NSTextField.alloc().initWithFrame_(frame)
+    def _field(self, frame, value, placeholder, secure=False):
+        cls = AppKit.NSSecureTextField if secure else AppKit.NSTextField
+        tf = cls.alloc().initWithFrame_(frame)
         tf.setBezelStyle_(AppKit.NSTextFieldRoundedBezel)
         tf.setFont_(AppKit.NSFont.systemFontOfSize_(13))
         tf.setStringValue_(value)
@@ -1150,7 +1179,7 @@ class Speech2TextApp:
             if response == AppKit.NSAlertFirstButtonReturn:
                 import subprocess
                 subprocess.Popen([
-                    "open",
+                    "/usr/bin/open",
                     "x-apple.systempreferences:com.apple.preference.security"
                     "?Privacy_Accessibility",
                 ])
